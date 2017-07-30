@@ -31,7 +31,6 @@ function processa(req, res)
    stato_file(filename,          
     function(err,stats)
 	{     
-       console.log("I'm processing " + filename + '\n'); 
        if(err)
 	   {     
           res.writeHead(404, {'Content-Type':'text/plain'}); 
@@ -42,6 +41,7 @@ function processa(req, res)
        // se la richiesta corrisponde a un file  
        if(stats.isFile())     
        {     
+          console.log("I'm processing file" + filename + '\n'); 
           var mimeType = mimeTypes[path.extname(filename).split(".").reverse()[0]]; 
           res.writeHead(200, {'Content-Type': mimeType}); 
           // crea uno stream dal file e lo va a scrivere all'interno di res 
@@ -50,10 +50,28 @@ function processa(req, res)
        } 
        else if (stats.isDirectory()) 
        { 
-          // se la richiesta corrisponde a un file directory 
-          res.writeHead(200, {'Content-Type':'text/plain'}); 
-          res.write('La risorsa '+uri+' è una directory'+'\n'); 
-          res.end();     
+          // se la richiesta corrisponde a una directory
+          console.log("I'm processing a directory " + uri + '\n'); 
+          fs.readdir(uri, function(err,files)
+		  {
+		     if (err) 
+			 {
+                res.writeHead(400, {'Content-Type':'text/html'}); 
+				console.error("Errore in fs.readdir");
+                res.end();				
+                return console.error(err);
+             }
+			 //Estrapola l'elenco dei file contenuti nella directory
+             res.writeHead(200, {'Content-Type':'text/html'}); 
+             res.write("<p>La risorsa "+uri+" e' una directory \n"); 
+             res.write('<ul>Elenco dei file:\n'); 
+             files.forEach( function (file)
+			 {
+                res.write('<li>'+file+'</li>\n');
+             });			 
+             res.write('</ul>/n</p>\n');
+             res.end();     
+		  });
        }     
        else     
        {     
@@ -63,8 +81,6 @@ function processa(req, res)
           res.end();     
        } 
     });     
-   console.log(req.url);     
-   console.log(process.cwd());     
 } 
 console.log("Server is available \n"); 
 var port =  process.env.OPENSHIFT_NODEJS_PORT || 8080;   // Port 8080 if you run locally 
